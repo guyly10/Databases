@@ -16,3 +16,10 @@ UNION
 SELECT Company.companyID, Company.companyName, Company.phone
 FROM Company JOIN Transport ON Company.companyID = Transport.companyID JOIN CargoShip ON Transport.cargoShipID = CargoShip.cargoShipID
 WHERE Transport.weightGoods + Transport.volumeGoods = CargoShip.maxCapacity + CargoShip.maxVolume
+
+
+SELECT TOP 20 Person.firstName + ' ' + Person.surName AS 'FullName', Employee.employeeID
+FROM Person JOIN Employee on Person.personID = Employee.employeeID JOIN jobInSailing ON Employee.employeeID = jobInSailing.employeeID 
+JOIN Sailing ON jobInSailing.sailingID = Sailing.sailingID
+WHERE DATEDIFF(YEAR, Employee.startWorkDate, GETDATE()) >= 5 AND YEAR(Sailing.leavingTime) = '2018' AND YEAR(Sailing.returnTime) = '2018'
+ORDER BY COUNT(jobInSailing.sailingID)
