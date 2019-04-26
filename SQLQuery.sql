@@ -23,3 +23,32 @@ FROM Person JOIN Employee on Person.personID = Employee.employeeID JOIN jobInSai
 JOIN Sailing ON jobInSailing.sailingID = Sailing.sailingID
 WHERE DATEDIFF(YEAR, Employee.startWorkDate, GETDATE()) >= 5 AND YEAR(Sailing.leavingTime) = '2018' AND YEAR(Sailing.returnTime) = '2018'
 ORDER BY COUNT(jobInSailing.sailingID)
+
+
+/*We assume that the minimum time to stop a ship from goint out to a sail is 5 minutes*/
+SELECT Transport.seaTransportID, Sailing.leavingTime, Transport.cargoShipID
+FROM CargoShip JOIN Transport ON CargoShip.cargoShipID = Transport.cargoShipID JOIN Sailing ON Transport.seaTransportID = Sailing.sailingID
+WHERE DATEDIFF(MINUTE, Sailing.leavingTime, GETDATE()) > 5 AND Transport.weightGoods > CargoShip.maxCapacity AND Transport.volumeGoods > CargoShip.maxVolume
+ORDER BY Sailing.leavingTime DESC
+
+
+/*Return to check this query*/
+/*SELECT Sailing.sailingID + ' ' + Sailing.leavingTime + ' ' + Sailing.returnTime as 'Overlap Sailing'
+FROM Transport JOIN (SELECT Sailing.returnTime FROM Sailing JOIN SailTo ON Sailing.sailingID = SailTo.sailingID WHERE DATEDIFF(YEAR, Sailing.returnTime, GETDATE())>= 2 
+						AND Sailing.leavingTime <= Sailing.returnTime AND Sailing.returnTime >= Sailing.leavingTime AND SailTo.countryName = SailTo.countryName AND SailTo.portName
+						= SailTo.portName))
+GROUP BY Sailing.leavingTime*/
+
+
+SELECT SailTo.countryName + ' ' + SailTo.portName AS 'Destination', COUNT(CruiseOrder.personID) AS numOfOrders
+FROM CruiseOrder JOIN Sailing ON CruiseOrder.cruiseID = Sailing.sailingID JOIN SailTo ON Sailing.sailingID = SailTo.sailingID
+WHERE YEAR(Sailing.returnTime) BETWEEN 2015 AND 2019
+GROUP BY SailTo.countryName, SailTo.portName
+ORDER BY Sailing.returnTime DESC, numOfOrders DESC
+
+
+SELECT S.cruiseID, COUNT(Room.roomType) AS numOfEmptySuits
+FROM Room LEFT JOIN CruiseOrder ON Room.cruiseShipID = CruiseOrder.cruiseShipID JOIN 
+(SELECT Cruise.cruiseID FROM Cruise JOIN Sailing ON Cruise.cruiseID = Sailing.sailingID
+WHERE Sailing.leavingTime < GETDATE()) S ON CruiseOrder.cruiseID = S.cruiseID 
+WHERE Room.roomType = 'Suite' AND CruiseOrder.roomNumber = NULL
