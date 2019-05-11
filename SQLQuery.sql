@@ -32,22 +32,27 @@ WHERE DATEDIFF(MINUTE, Sailing.leavingTime, GETDATE()) > 5 AND Transport.weightG
 ORDER BY Sailing.leavingTime DESC
 
 
-/*Return to check this query*/
-/*SELECT Sailing.sailingID + ' ' + Sailing.leavingTime + ' ' + Sailing.returnTime as 'Overlap Sailing'
-FROM Transport JOIN (SELECT Sailing.returnTime FROM Sailing JOIN SailTo ON Sailing.sailingID = SailTo.sailingID WHERE DATEDIFF(YEAR, Sailing.returnTime, GETDATE())>= 2 
-						AND Sailing.leavingTime <= Sailing.returnTime AND Sailing.returnTime >= Sailing.leavingTime AND SailTo.countryName = SailTo.countryName AND SailTo.portName
-						= SailTo.portName))
-GROUP BY Sailing.leavingTime*/
+SELECT Q1.sailingID, CONCAT(Q1.leavingTime,' - ',Q1.returnTime) AS dateRange1, Q2.sailingID, CONCAT(Q2.leavingTime,' - ',Q2.returnTime) AS dateRange2
+FROM	
+		(SELECT S.sailingID, S.leavingTime, S.returnTime, SAT.countryName, SAT.portName
+		FROM Sailing S INNER JOIN SeaTransport ST ON s.sailingID = ST.seaTransportID INNER JOIN SailTo SAT 
+		ON SAT.sailingID = S.sailingID) Q1 
+INNER JOIN  
+		(SELECT S.sailingID, S.leavingTime, S.returnTime, SAT.countryName, SAT.portName
+		FROM Sailing S INNER JOIN SeaTransport ST ON s.sailingID = ST.seaTransportID INNER JOIN SailTo SAT 
+		ON SAT.sailingID = S.sailingID) Q2 ON Q1.sailingID < Q2.sailingID
+WHERE DATEDIFF(DAY, Q1.leavingTime, GETDATE()) <= 365*2 AND Q1.leavingTime <= Q2.returnTime AND Q2.leavingTime <= Q1.returnTime
+AND Q1.countryName = Q2.countryName AND Q1.portName = Q2.portName
 
 
-SELECT SailTo.countryName + ' ' + SailTo.portName AS 'Destination', COUNT(CruiseOrder.personID) AS numOfOrders
-FROM CruiseOrder JOIN Sailing ON CruiseOrder.cruiseID = Sailing.sailingID JOIN SailTo ON Sailing.sailingID = SailTo.sailingID
-WHERE YEAR(Sailing.returnTime) BETWEEN 2015 AND 2019
-GROUP BY SailTo.countryName, SailTo.portName
-ORDER BY Sailing.returnTime DESC, numOfOrders DESC
+SELECT YEAR(S.leavingTime) AS Year, ST.countryName, ST.portName, COUNT(CO.personID) AS NumOfOrders
+FROM Sailing S INNER JOIN CruiseOrder CO ON S.sailingID = CO.cruiseID INNER JOIN SailTo ST ON S.sailingID = ST.sailingID
+WHERE YEAR(s.leavingTime) BETWEEN 2010 AND 2019
+GROUP BY ST.countryName, ST.portName, YEAR(S.leavingTime)
+ORDER BY YEAR(S.leavingTime) DESC, NumOfOrders DESC
 
 
-SELECT S.cruiseID, COUNT(Room.roomType) AS numOfEmptySuits
+SELECT S.cruiseID, COUNT(Room.roomType) AS numOfEmptySuites
 FROM Room LEFT JOIN CruiseOrder ON Room.cruiseShipID = CruiseOrder.cruiseShipID JOIN 
 (SELECT Cruise.cruiseID FROM Cruise JOIN Sailing ON Cruise.cruiseID = Sailing.sailingID
 WHERE Sailing.leavingTime < GETDATE()) S ON CruiseOrder.cruiseID = S.cruiseID 
